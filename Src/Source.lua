@@ -20,7 +20,7 @@ function Library:CreateWindow(titleText, cfg)
     local ContentHolder = Instance.new("CanvasGroup") 
     local Title = Instance.new("TextLabel")
     
-    ScreenGui.Name = "ProjectBlue_V25_1"
+    ScreenGui.Name = "Connecsalized"
     if gethui then ScreenGui.Parent = gethui()
     elseif CoreGui then ScreenGui.Parent = CoreGui
     else ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui") end

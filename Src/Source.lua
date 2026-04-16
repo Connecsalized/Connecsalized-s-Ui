@@ -156,6 +156,8 @@ function Library:CreateWindow(titleText, cfg)
                 SFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true; Update(i) end end)
                 UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then Update(i) end end)
                 UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+                local startPerc = math.clamp(((sConfig.Default or sConfig.Min) - sConfig.Min) / (sConfig.Max - sConfig.Min), 0, 1)
+                SFill.Size = UDim2.new(startPerc, 0, 1, 0)
             end
 
             function Elements:CreateDropdown(dConfig)

@@ -13,14 +13,15 @@ local Library = {}
 
 function Library:CreateWindow(titleText, cfg)
     local config = cfg or {}
-    local WindowSize = config.Size or UDim2.fromOffset(400, 300)
+    local WindowSize = config.Size or UDim2.fromOffset(580, 460)
+    local MinSize = Vector2.new(300, 200)
     
     local ScreenGui = Instance.new("ScreenGui")
     local MainFrame = Instance.new("Frame")
     local ContentHolder = Instance.new("CanvasGroup") 
     local Title = Instance.new("TextLabel")
     
-    ScreenGui.Name = "Connecsalized"
+    ScreenGui.Name = "ProjectBlue_V25_TotalDrag"
     if gethui then ScreenGui.Parent = gethui()
     elseif CoreGui then ScreenGui.Parent = CoreGui
     else ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui") end
@@ -31,12 +32,12 @@ function Library:CreateWindow(titleText, cfg)
     MainFrame.Name = "MainFrame"
     MainFrame.Parent = ScreenGui
     MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0) 
-    MainFrame.Size = WindowSize
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
     MainFrame.ClipsDescendants = true
+    -- Using Offset only for position to prevent scaling glitches
+    MainFrame.Position = UDim2.new(0.5, -WindowSize.X.Offset/2, 0.5, -WindowSize.Y.Offset/2) 
+    MainFrame.Size = WindowSize
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
     ContentHolder.Name = "Content"
@@ -46,26 +47,85 @@ function Library:CreateWindow(titleText, cfg)
     ContentHolder.Size = UDim2.new(1, 0, 1, -40)
     ContentHolder.GroupTransparency = 0
 
+    local ResizeHandle = Instance.new("Frame", MainFrame)
+    ResizeHandle.Name = "ResizeHandle"
+    ResizeHandle.Size = UDim2.new(0, 30, 0, 30)
+    ResizeHandle.Position = UDim2.new(1, -30, 1, -30)
+    ResizeHandle.BackgroundTransparency = 1
+    ResizeHandle.ZIndex = 10
+
+    local ResizeIcon = Instance.new("TextLabel", ResizeHandle)
+    ResizeIcon.Size = UDim2.new(1, 0, 1, 0)
+    ResizeIcon.BackgroundTransparency = 1
+    ResizeIcon.Text = "◢"
+    ResizeIcon.TextColor3 = Color3.fromRGB(0, 255, 255)
+    ResizeIcon.TextTransparency = 0.6; ResizeIcon.TextSize = 18
+    ResizeIcon.TextXAlignment = Enum.TextXAlignment.Right; ResizeIcon.TextYAlignment = Enum.TextYAlignment.Bottom
+
     local TitleSquare = Instance.new("Frame", MainFrame)
     TitleSquare.BackgroundColor3 = Color3.fromRGB(0, 255, 255); TitleSquare.BackgroundTransparency = 0.88; TitleSquare.Position = UDim2.new(0, 15, 0, 12); TitleSquare.Size = UDim2.new(0, 16, 0, 16)
     Instance.new("UICorner", TitleSquare).CornerRadius = UDim.new(0, 4)
-    local TSOutline = Instance.new("UIStroke", TitleSquare); TSOutline.Color = Color3.fromRGB(0, 255, 255); TSOutline.Thickness = 1; TSOutline.Transparency = 0.5
 
     Title.Parent = MainFrame; Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 38, 0, 0); Title.Size = UDim2.new(1, -100, 0, 40)
     Title.Font = Enum.Font.GothamBold; Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.TextSize = 14; Title.Text = titleText or "PROJECT BLUE"; Title.TextXAlignment = Enum.TextXAlignment.Left
     local TG = Instance.new("UIGradient", Title); TG.Rotation = 90; TG.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(0.501, Color3.fromRGB(0, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 255))})
 
     local MinBtn = Instance.new("TextButton", MainFrame)
-    MinBtn.Size = UDim2.new(0, 30, 0, 30); MinBtn.Position = UDim2.new(1, -35, 0, 5); MinBtn.BackgroundTransparency = 1; MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(150, 150, 150); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 18
+    MinBtn.Size = UDim2.new(0, 30, 0, 30); MinBtn.Position = UDim2.new(1, -35, 0, 5); MinBtn.BackgroundTransparency = 1; MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(150, 150, 150); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 18; MinBtn.ZIndex = 11
     
     local isMinimized = false
     MinBtn.Activated:Connect(function()
         isMinimized = not isMinimized
-        local targetSize = isMinimized and UDim2.new(WindowSize.X.Scale, WindowSize.X.Offset, 0, 40) or WindowSize
+        local targetSize = isMinimized and UDim2.new(0, MainFrame.AbsoluteSize.X, 0, 40) or WindowSize
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
         TweenService:Create(ContentHolder, TweenInfo.new(0.2), {GroupTransparency = isMinimized and 1 or 0}):Play()
         ContentHolder.Visible = not isMinimized
+        ResizeHandle.Visible = not isMinimized
         MinBtn.Text = isMinimized and "+" or "-"
+    end)
+
+    -- [ SMART DRAG & RESIZE ]
+    local dragging, resizing = false, false
+    local dragStart, startPos, startSize
+
+    MainFrame.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            local mousePos = input.Position
+            local framePos = MainFrame.AbsolutePosition
+            local frameSize = MainFrame.AbsoluteSize
+            
+            -- Priority 1: Check for Corner Resize
+            if mousePos.X >= (framePos.X + frameSize.X - 35) and mousePos.Y >= (framePos.Y + frameSize.Y - 35) then
+                resizing = true
+                dragStart = input.Position
+                startSize = frameSize
+            -- Priority 2: Drag from anywhere else (unless it's an interactive button handled by script)
+            else
+                dragging = true
+                dragStart = input.Position
+                startPos = framePos
+            end
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if (dragging or resizing) and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            if dragging then
+                MainFrame.Position = UDim2.new(0, startPos.X + delta.X, 0, startPos.Y + delta.Y)
+            elseif resizing then
+                local newX = math.max(MinSize.X, startSize.X + delta.X)
+                local newY = math.max(MinSize.Y, startSize.Y + delta.Y)
+                MainFrame.Size = UDim2.fromOffset(newX, newY)
+                if not isMinimized then WindowSize = MainFrame.Size end
+            end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging, resizing = false, false
+        end
     end)
 
     local TabBar = Instance.new("Frame", ContentHolder); TabBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0); TabBar.BackgroundTransparency = 0.98; TabBar.Position = UDim2.new(0, 8, 0, 0); TabBar.Size = UDim2.new(0, 100, 1, -8)
@@ -75,24 +135,9 @@ function Library:CreateWindow(titleText, cfg)
 
     local PageFolder = Instance.new("Frame", ContentHolder); PageFolder.BackgroundTransparency = 1; PageFolder.Position = UDim2.new(0, 115, 0, 0); PageFolder.Size = UDim2.new(1, -123, 1, -8)
 
-    local dragging, dragStart, startPos
-    MainFrame.InputBegan:Connect(function(input) 
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and input.Position.Y - MainFrame.AbsolutePosition.Y < 40 then 
-            dragging = true; dragStart = input.Position; startPos = MainFrame.Position 
-        end 
-    end)
-    UserInputService.InputChanged:Connect(function(input) 
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) 
-        end 
-    end)
-    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
-
     local Tabs = {FirstTab = nil}
     function Tabs:CreateTab(name)
-        local TabBtn = Instance.new("TextButton", TabBar)
-        TabBtn.Size = UDim2.new(1, -10, 0, 30); TabBtn.BackgroundTransparency = 1; TabBtn.Text = name; TabBtn.TextColor3 = Color3.fromRGB(140, 140, 140); TabBtn.Font = Enum.Font.GothamBold; TabBtn.TextSize = 11
+        local TabBtn = Instance.new("TextButton", TabBar); TabBtn.Size = UDim2.new(1, -10, 0, 30); TabBtn.BackgroundTransparency = 1; TabBtn.Text = name; TabBtn.TextColor3 = Color3.fromRGB(140, 140, 140); TabBtn.Font = Enum.Font.GothamBold; TabBtn.TextSize = 11; TabBtn.ZIndex = 5
         local TabDesign = Instance.new("Frame", TabBtn); TabDesign.Size = UDim2.new(1, 0, 1, 0); TabDesign.BackgroundColor3 = Color3.fromRGB(0, 255, 255); TabDesign.BackgroundTransparency = 1; Instance.new("UICorner", TabDesign).CornerRadius = UDim.new(0, 4)
         local TO = Instance.new("UIStroke", TabDesign); TO.Color = Color3.fromRGB(0, 255, 255); TO.Thickness = 1; TO.Transparency = 1
 
@@ -130,7 +175,7 @@ function Library:CreateWindow(titleText, cfg)
 
             function Elements:CreateButton(bConfig)
                 local BFrame, Container = CreateElementBase(SContent, bConfig.Name, bConfig.Description)
-                local B = Instance.new("TextButton", BFrame); B.Size = UDim2.new(1,0,1,0); B.BackgroundTransparency = 1; B.Text = ""
+                local B = Instance.new("TextButton", BFrame); B.Size = UDim2.new(1,0,1,0); B.BackgroundTransparency = 1; B.Text = ""; B.ZIndex = 5
                 local Stroke = Instance.new("UIStroke", BFrame); Stroke.Color = Color3.fromRGB(0, 255, 255); Stroke.Thickness = 1; Stroke.Transparency = 0.8
                 B.Activated:Connect(function() bConfig.Callback() end)
             end
@@ -141,7 +186,7 @@ function Library:CreateWindow(titleText, cfg)
                 local TS = Instance.new("UIStroke", TFrame); TS.Color = Color3.fromRGB(0, 255, 255); TS.Thickness = 1; TS.Transparency = current and 0.5 or 1
                 local TBox = Instance.new("Frame", TFrame); TBox.Size = UDim2.new(0, 22, 0, 11); TBox.Position = UDim2.new(1, -30, 0, 10); TBox.BackgroundColor3 = current and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(50, 50, 50); Instance.new("UICorner", TBox).CornerRadius = UDim.new(1, 0)
                 local TCircle = Instance.new("Frame", TBox); TCircle.Size = UDim2.new(0, 9, 0, 9); TCircle.Position = current and UDim2.new(1, -11, 0.5, -4) or UDim2.new(0, 2, 0.5, -4); TCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255); Instance.new("UICorner", TCircle).CornerRadius = UDim.new(1, 0)
-                local B = Instance.new("TextButton", TFrame); B.Size = UDim2.new(1,0,1,0); B.BackgroundTransparency = 1; B.Text = ""
+                local B = Instance.new("TextButton", TFrame); B.Size = UDim2.new(1,0,1,0); B.BackgroundTransparency = 1; B.Text = ""; B.ZIndex = 5
                 B.Activated:Connect(function() current = not current; TweenService:Create(TBox, TweenInfo.new(0.15), {BackgroundColor3 = current and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(50, 50, 50)}):Play(); TweenService:Create(TCircle, TweenInfo.new(0.15), {Position = current and UDim2.new(1, -11, 0.5, -4) or UDim2.new(0, 2, 0.5, -4)}):Play(); TS.Transparency = current and 0.5 or 1; tConfig.Callback(current) end)
                 if current then task.spawn(function() tConfig.Callback(current) end) end
             end
@@ -152,10 +197,10 @@ function Library:CreateWindow(titleText, cfg)
                 local SBack = Instance.new("Frame", Container); SBack.BackgroundColor3 = Color3.fromRGB(45, 45, 45); SBack.Size = UDim2.new(1, 0, 0, 4); Instance.new("UICorner", SBack)
                 local SFill = Instance.new("Frame", SBack); SFill.BackgroundColor3 = Color3.fromRGB(0, 255, 255); SFill.Size = UDim2.new(0, 0, 1, 0); Instance.new("UICorner", SFill)
                 local function Update(input) local perc = math.clamp((input.Position.X - SBack.AbsolutePosition.X) / SBack.AbsoluteSize.X, 0, 1); local val = math.floor(sConfig.Min + (sConfig.Max - sConfig.Min) * perc); SFill.Size = UDim2.new(perc, 0, 1, 0); SVal.Text = tostring(val); sConfig.Callback(val) end
-                local dragging = false
-                SFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true; Update(i) end end)
-                UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then Update(i) end end)
-                UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+                local sliding = false
+                SFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sliding = true; Update(i) end end)
+                UserInputService.InputChanged:Connect(function(i) if sliding and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then Update(i) end end)
+                UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sliding = false end end)
                 local startPerc = math.clamp(((sConfig.Default or sConfig.Min) - sConfig.Min) / (sConfig.Max - sConfig.Min), 0, 1)
                 SFill.Size = UDim2.new(startPerc, 0, 1, 0)
             end
@@ -166,7 +211,7 @@ function Library:CreateWindow(titleText, cfg)
                 DFrame.ClipsDescendants = true
                 local Display = Instance.new("TextLabel", Container); Display.BackgroundTransparency = 1; Display.Size = UDim2.new(1, 0, 0, 18); Display.Font = Enum.Font.GothamBold; Display.TextColor3 = Color3.fromRGB(0, 255, 255); Display.TextSize = 9; Display.Text = "Selected: "..current; Display.TextXAlignment = Enum.TextXAlignment.Left
                 local open = false
-                local DB = Instance.new("TextButton", DFrame); DB.Size = UDim2.new(1,0,0,35); DB.BackgroundTransparency = 1; DB.Text = ""
+                local DB = Instance.new("TextButton", DFrame); DB.Size = UDim2.new(1,0,0,35); DB.BackgroundTransparency = 1; DB.Text = ""; DB.ZIndex = 5
                 local OptionHolder = Instance.new("Frame", Container); OptionHolder.BackgroundTransparency = 1; OptionHolder.Size = UDim2.new(1, 0, 0, 0); OptionHolder.Visible = false; OptionHolder.AutomaticSize = Enum.AutomaticSize.Y
                 Instance.new("UIListLayout", OptionHolder).Padding = UDim.new(0, 4)
                 DB.Activated:Connect(function() open = not open; OptionHolder.Visible = open end)
@@ -180,7 +225,7 @@ function Library:CreateWindow(titleText, cfg)
                     end
                 end
                 for _, opt in pairs(dConfig.Options) do
-                    local OB = Instance.new("TextButton", OptionHolder); OB.BackgroundColor3 = Color3.fromRGB(35, 35, 35); OB.Size = UDim2.new(1, 0, 0, 20); OB.Font = Enum.Font.Gotham; OB.TextSize = 9; OB.Text = opt; Instance.new("UICorner", OB)
+                    local OB = Instance.new("TextButton", OptionHolder); OB.BackgroundColor3 = Color3.fromRGB(35, 35, 35); OB.Size = UDim2.new(1, 0, 0, 20); OB.Font = Enum.Font.Gotham; OB.TextSize = 9; OB.Text = opt; Instance.new("UICorner", OB); OB.ZIndex = 6
                     OB.Activated:Connect(function()
                         current = opt; Display.Text = "Selected: "..opt; open = false; OptionHolder.Visible = false; Refresh(); dConfig.Callback(opt)
                     end)

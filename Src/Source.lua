@@ -16,10 +16,10 @@ function Library:Notification(nConfig)
     local Content = nConfig.Content or "No content provided."
     local Duration = nConfig.Duration or 5
     
-    local NotifyGui = CoreGui:FindFirstChild("ProjectBlue_Notifications")
+    local NotifyGui = CoreGui:FindFirstChild("ONG BRUH")
     if not NotifyGui then
         NotifyGui = Instance.new("ScreenGui")
-        NotifyGui.Name = "Test Connecsalized Notification"
+        NotifyGui.Name = "ProjectBlue_Notifications"
         if gethui then NotifyGui.Parent = gethui() else NotifyGui.Parent = CoreGui end
     end
 
@@ -50,7 +50,7 @@ function Library:Notification(nConfig)
 
     local C = Instance.new("TextLabel", Main)
     C.Text = Content; C.Size = UDim2.new(1, -20, 0, 30); C.Position = UDim2.new(0, 10, 0, 25)
-    C.TextColor3 = Color3.fromRGB(220, 220, 220); C.Font = Enum.Font.Gotham; C.TextSize = 11
+    C.TextColor3 = Color3.fromRGB(200, 200, 200); C.Font = Enum.Font.Gotham; C.TextSize = 11
     C.TextXAlignment = "Left"; C.TextWrapped = true; C.BackgroundTransparency = 1
 
     TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, 65)}):Play()
@@ -134,7 +134,6 @@ function Library:CreateWindow(titleText, cfg)
         MinBtn.Text = isMinimized and "+" or "-"
     end)
 
-    -- [ SMART DRAG & RESIZE ]
     local dragging, resizing = false, false
     local dragStart, startPos, startSize
 
@@ -143,11 +142,14 @@ function Library:CreateWindow(titleText, cfg)
             local mousePos = input.Position
             local framePos = MainFrame.AbsolutePosition
             local frameSize = MainFrame.AbsoluteSize
-            
             if mousePos.X >= (framePos.X + frameSize.X - 35) and mousePos.Y >= (framePos.Y + frameSize.Y - 35) then
-                resizing = true; dragStart = input.Position; startSize = frameSize
+                resizing = true
+                dragStart = input.Position
+                startSize = frameSize
             else
-                dragging = true; dragStart = input.Position; startPos = framePos
+                dragging = true
+                dragStart = input.Position
+                startPos = framePos
             end
         end
     end)
@@ -280,7 +282,7 @@ function Library:CreateWindow(titleText, cfg)
 
             return Elements
         end
-        if Tabs.FirstTab == nil then Tabs.FirstTab = Page; task.delay(0.1, function() Page.Visible = true; TabBtn.TextColor3 = Color3.fromRGB(140, 140, 140); v.Frame.BackgroundTransparency = 1; v.Frame.UIStroke.Transparency = 1 end end) end
+        if Tabs.FirstTab == nil then Tabs.FirstTab = Page; task.delay(0.1, function() Page.Visible = true; TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255); TabDesign.BackgroundTransparency = 0.88; TO.Transparency = 0.5 end) end
         return Sections
     end
     return Tabs

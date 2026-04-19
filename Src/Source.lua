@@ -11,6 +11,57 @@ local Players = GetService("Players")
 
 local Library = {}
 
+function Library:Notification(nConfig)
+    local Title = nConfig.Title or "Notification"
+    local Content = nConfig.Content or "No content provided."
+    local Duration = nConfig.Duration or 5
+    
+    local NotifyGui = CoreGui:FindFirstChild("ProjectBlue_Notifications")
+    if not NotifyGui then
+        NotifyGui = Instance.new("ScreenGui")
+        NotifyGui.Name = "Test Connecsalized Notification"
+        if gethui then NotifyGui.Parent = gethui() else NotifyGui.Parent = CoreGui end
+    end
+
+    local Holder = NotifyGui:FindFirstChild("Holder")
+    if not Holder then
+        Holder = Instance.new("Frame", NotifyGui)
+        Holder.Name = "Holder"
+        Holder.Size = UDim2.new(0, 240, 1, -20)
+        Holder.Position = UDim2.new(1, -250, 0, 10)
+        Holder.BackgroundTransparency = 1
+        local Layout = Instance.new("UIListLayout", Holder)
+        Layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        Layout.Padding = UDim.new(0, 8)
+    end
+
+    local Main = Instance.new("Frame", Holder)
+    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    Main.Size = UDim2.new(1, 0, 0, 0)
+    Main.ClipsDescendants = true
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 6)
+    local Stroke = Instance.new("UIStroke", Main)
+    Stroke.Color = Color3.fromRGB(0, 255, 255); Stroke.Thickness = 1; Stroke.Transparency = 0.6
+
+    local T = Instance.new("TextLabel", Main)
+    T.Text = Title; T.Size = UDim2.new(1, -20, 0, 25); T.Position = UDim2.new(0, 10, 0, 5)
+    T.TextColor3 = Color3.fromRGB(0, 255, 255); T.Font = Enum.Font.GothamBold; T.TextSize = 13
+    T.TextXAlignment = "Left"; T.BackgroundTransparency = 1
+
+    local C = Instance.new("TextLabel", Main)
+    C.Text = Content; C.Size = UDim2.new(1, -20, 0, 30); C.Position = UDim2.new(0, 10, 0, 25)
+    C.TextColor3 = Color3.fromRGB(220, 220, 220); C.Font = Enum.Font.Gotham; C.TextSize = 11
+    C.TextXAlignment = "Left"; C.TextWrapped = true; C.BackgroundTransparency = 1
+
+    TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, 65)}):Play()
+
+    task.delay(Duration, function()
+        local out = TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, 0)})
+        out:Play()
+        out.Completed:Connect(function() Main:Destroy() end)
+    end)
+end
+
 function Library:CreateWindow(titleText, cfg)
     local config = cfg or {}
     local WindowSize = config.Size or UDim2.fromOffset(580, 460)
@@ -21,7 +72,7 @@ function Library:CreateWindow(titleText, cfg)
     local ContentHolder = Instance.new("CanvasGroup") 
     local Title = Instance.new("TextLabel")
     
-    ScreenGui.Name = "ProjectBlue_V25_TotalDrag"
+    ScreenGui.Name = "Connecsalized"
     if gethui then ScreenGui.Parent = gethui()
     elseif CoreGui then ScreenGui.Parent = CoreGui
     else ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui") end
@@ -35,7 +86,6 @@ function Library:CreateWindow(titleText, cfg)
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
     MainFrame.ClipsDescendants = true
-    -- Using Offset only for position to prevent scaling glitches
     MainFrame.Position = UDim2.new(0.5, -WindowSize.X.Offset/2, 0.5, -WindowSize.Y.Offset/2) 
     MainFrame.Size = WindowSize
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
@@ -94,16 +144,10 @@ function Library:CreateWindow(titleText, cfg)
             local framePos = MainFrame.AbsolutePosition
             local frameSize = MainFrame.AbsoluteSize
             
-            -- Priority 1: Check for Corner Resize
             if mousePos.X >= (framePos.X + frameSize.X - 35) and mousePos.Y >= (framePos.Y + frameSize.Y - 35) then
-                resizing = true
-                dragStart = input.Position
-                startSize = frameSize
-            -- Priority 2: Drag from anywhere else (unless it's an interactive button handled by script)
+                resizing = true; dragStart = input.Position; startSize = frameSize
             else
-                dragging = true
-                dragStart = input.Position
-                startPos = framePos
+                dragging = true; dragStart = input.Position; startPos = framePos
             end
         end
     end)
@@ -236,7 +280,7 @@ function Library:CreateWindow(titleText, cfg)
 
             return Elements
         end
-        if Tabs.FirstTab == nil then Tabs.FirstTab = Page; task.delay(0.1, function() Page.Visible = true; TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255); TabDesign.BackgroundTransparency = 0.88; TO.Transparency = 0.5 end) end
+        if Tabs.FirstTab == nil then Tabs.FirstTab = Page; task.delay(0.1, function() Page.Visible = true; TabBtn.TextColor3 = Color3.fromRGB(140, 140, 140); v.Frame.BackgroundTransparency = 1; v.Frame.UIStroke.Transparency = 1 end end) end
         return Sections
     end
     return Tabs

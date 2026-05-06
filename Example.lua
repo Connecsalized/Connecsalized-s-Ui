@@ -1,6 +1,8 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Connecsalized/Connecsalized-s-Ui/refs/heads/main/Src/Source.lua"))()
 
 local Win = Library:CreateWindow("Connecsalized's Ui Library", {
+    local Window = Library:CreateWindow("PROJECT RED", {
+    Theme = "Default", -- Options: "Default", "Black", "Red", "White"
     Size = UDim2.fromOffset(580, 460)
 })
 local Tab = Win:CreateTab("Main")
